@@ -346,7 +346,7 @@ class SetStockLists():
         return code_list, company_list
 
 
-    def by_ETF_Volume(self, num_company=100):
+    def by_ETF_Volume(self, num_company=50):
         opt = webdriver.ChromeOptions()
         opt.add_argument('headless')
         drv = webdriver.Chrome('./chromedriver.exe', options=opt)
@@ -362,12 +362,14 @@ class SetStockLists():
         df = df.drop(columns=['Unnamed: 9'])
         df = df.dropna()
         df = df.sort_values(by='거래량', ascending=False)
+
         etf_td = bs.find_all('td', class_='ctg')
         etfs = {}
         for td in etf_td:
             s = str(td.a['href']).split('=')
             code = s[-1]
             etfs[td.a.text] = code
+
         company_names = []
         codes = []
         for i in range(len(df)):
@@ -376,7 +378,16 @@ class SetStockLists():
             codes.append(etfs[name])
         df.insert(1, 'code', codes)
 
+        df_index = []
+        for idx in range(len(df)):
+            if "단기" in df.iloc[idx]['종목명']:
+                df_index.append(df.index[idx])
+        df = df.drop(index=df_index, axis=0)
+
         return list(df['code'][:num_company]), list(df['종목명'][:num_company])
+
+
+
 
 
 
@@ -386,8 +397,8 @@ code_list = SSL.code_list
 company_list = SSL.company_list
 
 ABT = AutoBackTester()
-fromDate = '2021-01-01'
-toDate = '2021-03-31'
+fromDate = '2020-04-01'
+toDate = '2020-06-30'
 
 """
 isStock: 주식(True), ETF(False) -> 수수료 적용
