@@ -143,9 +143,23 @@ def plot_graph():
         value[3]: 미래에셋증권
         value[4]: 키움증권
         """
-        df = stock.get_market_ohlcv_by_date("20150101", "20210423", code)
-        name = stock.get_market_ticker_name(code)
+        # 주가
+        df = stock.get_market_ohlcv_by_date("20180101", "20210423", code)
         df['number'] = df.index.map(mdates.date2num)
+        # 코스피
+        kospi = stock.get_index_ohlcv_by_date("20180101", "20210423", "1001")
+        kospi['number'] = kospi.index.map(mdates.date2num)
+        # Empty df인 경우
+        if df.empty:
+            continue
+        name = stock.get_market_ticker_name(code)
+        # 거래 정지 기간 처리
+        idx_list = df.index[df.시가 == 0]
+        for idx in idx_list:
+            close = df.loc[idx].종가
+            df.at[idx, '시가'] = close
+            df.at[idx, '고가'] = close
+            df.at[idx, '저가'] = close
         ohlc = df[['number', '시가', '고가', '저가', '종가']]
         figure1 = plt.figure(1, figsize=(9, 9))
         p1 = plt.subplot(1, 1, 1)
@@ -153,7 +167,7 @@ def plot_graph():
         # plt.grid(True)
         candlestick_ohlc(p1, ohlc.values, width=.6, colorup='red', colordown='blue')
         p1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-        for i in range(5):
+        for i in range(1):
             for j in range(1, len(value[i])):
                 val = value[i][j]
                 day = val[0]
@@ -172,10 +186,13 @@ def plot_graph():
                     else:
                         plt.vlines(day, df.종가.min(), df.종가.max(), colors='orange', linewidth=1)
                     # plt.plot(day, df.종가.min(), 'r^')
+        p2 = p1.twinx()
+        p2.plot(kospi['number'], kospi['종가'], linewidth=1, label='KOSPI')
+        plt.legend(loc='best')
         figure1.savefig(fname='./graphs/' + code, dpi=300)
         plt.close()
 
 
-get_reports()
+#get_reports()
 plot_graph()
 
