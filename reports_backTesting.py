@@ -375,9 +375,6 @@ def calculate_yields(fromDate, toDate, upper=20, lower=20, duration=181):
                 if not sell_flag:
                     sell_report.append((day, df.loc[day_s]['종가']))
 
-            print(code)
-            print(buy_report)
-            print(sell_report)
             # 수익률 계산
             strat_yield_with_fee = 1
             for idx in range(len(buy_report)):
