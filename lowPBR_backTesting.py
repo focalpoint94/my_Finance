@@ -13,11 +13,12 @@ import numpy as np
 
 
 """
+market: "KOSPI" "KOSDAQ" "MIX"
 start_year: 투자 시작 연도 ('2014' ;str)
 start_month: 투자 시작 월 ('11', ;str)
 period: 'year', 'half year', 'quarter', 'month' ;str
 """
-def lowPBR_backTesting(start_year: str='2014', start_month: str='11', period: str='half year'):
+def lowPBR_backTesting(market: str='KOSPI', start_year: str='2014', start_month: str='11', period: str='half year'):
     fromDate = start_year + start_month + "01"
     if period == 'year':
         duration = 365
@@ -51,10 +52,24 @@ def lowPBR_backTesting(start_year: str='2014', start_month: str='11', period: st
 
         open_fromDate = stock.get_nearest_business_day_in_a_week(this_fromDate, prev=False)
         open_toDate = stock.get_nearest_business_day_in_a_week(this_toDate, prev=True)
-        df = stock.get_market_fundamental_by_ticker(open_fromDate, market="KOSPI")
-        df = df.sort_values(by='PBR', ascending=True)
-        df = df[df['PBR'] > 0.2]
-        lowPBR_list = df.index[:50]
+        if market == "KOSPI" or market == "KOSDAQ":
+            df = stock.get_market_fundamental_by_ticker(open_fromDate, market=market)
+            df = df.sort_values(by='PBR', ascending=True)
+            df = df[df['PBR'] > 0.2]
+            lowPBR_list = df.index[:50]
+        elif market == "MIX":
+            df = stock.get_market_fundamental_by_ticker(open_fromDate, market="KOSPI")
+            df = df.sort_values(by='PBR', ascending=True)
+            df = df[df['PBR'] > 0.2]
+            temp1 = df.index[:25].to_list()
+            df = stock.get_market_fundamental_by_ticker(open_fromDate, market="KOSDAQ")
+            df = df.sort_values(by='PBR', ascending=True)
+            df = df[df['PBR'] > 0.2]
+            temp2 = df.index[:25].to_list()
+            lowPBR_list = temp1 + temp2
+        else:
+            print("INVALID MARKET")
+            return
 
         code_list = []
         buy_price = []
@@ -99,10 +114,11 @@ def lowPBR_backTesting(start_year: str='2014', start_month: str='11', period: st
 
     data = {'기간': term_list, '수익률': profit_list}
     df = pd.DataFrame(data=data)
-    writer = pd.ExcelWriter('./lowPBR_backTesting.xlsx', engine='xlsxwriter')
+    file_name = './lowPBR_backTesting_' + market + '.xlsx'
+    writer = pd.ExcelWriter(file_name, engine='xlsxwriter')
     df.to_excel(writer)
     writer.close()
 
 
-lowPBR_backTesting(start_year="2010", start_month="11", period="half year")
+lowPBR_backTesting(market="MIX", start_year="2010", start_month="11", period="half year")
 
