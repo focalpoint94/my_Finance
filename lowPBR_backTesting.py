@@ -62,9 +62,12 @@ def lowPBR_backTesting(start_year: str='2014', start_month: str='11', period: st
         yield_list = []
 
         for i in range(len(lowPBR_list)):
-            code_list.append(lowPBR_list[i])
-
+            # 거래 시작일에 거래 정지였던 종목 배제
             db = stock.get_market_ohlcv_by_date(open_fromDate, open_fromDate, lowPBR_list[i])
+            if db.iloc[0]['시가'] == 0:
+                continue
+
+            code_list.append(lowPBR_list[i])
             buy_price.append(db.iloc[0]['종가'])
 
             ds = stock.get_market_ohlcv_by_date(open_toDate, open_toDate, lowPBR_list[i])
