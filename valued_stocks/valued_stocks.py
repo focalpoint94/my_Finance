@@ -18,7 +18,7 @@ def debt_ratio(code: str, year: str):
     :param year: fiscal year
     :return: 자본, 부채, 부채 비율
     """
-    api_key = '	423358f7b1762af4cf81bb633c44244636f9037c'
+    api_key = '***************************************'
     dart = OpenDartReader(api_key)
     df = dart.finstate(code, year)
     if df is None or df.empty:
