@@ -15,7 +15,7 @@ def NCAV_backTester(start_year: int):
     """
     Dart API
     """
-    api_key = '423358f7b1762af4cf81bb633c44244636f9037c'
+    api_key = '**********************************'
     dart = OpenDartReader(api_key)
 
     term_list = []
