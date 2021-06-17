@@ -24,7 +24,7 @@ def _get_all_financial_data(start_year: int=2009, start_idx: int=0):
     """
     API Key
     """
-    api_key = '423358f7b1762af4cf81bb633c44244636f9037c'
+    api_key = '**********************************'
     dart.set_api_key(api_key=api_key)
 
     """
