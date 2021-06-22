@@ -225,6 +225,9 @@ def simulate_invest(**kwargs):
     print('================================')
 
 
+"""
+calc_yield
+"""
 # code = code_list[0]
 # param_dict = dict({
 #     'code': code,
@@ -236,6 +239,9 @@ def simulate_invest(**kwargs):
 #     'spillage': 1, })
 # buy_list, sell_list, yield_list, kospi_yield_list, culmulative_yield, df = calc_yield(**param_dict)
 
+"""
+simulate_invest
+"""
 # param_dict = dict({
 #     'code_list': code_list,
 #     'fromDate': '20160601',
@@ -246,6 +252,9 @@ def simulate_invest(**kwargs):
 #     'spillage': 1, })
 # simulate_invest(**param_dict)
 
+"""
+culmulative yield
+"""
 culmulative_yield_list = []
 for code in code_list:
     param_dict = dict({
@@ -258,17 +267,19 @@ for code in code_list:
         'spillage': 1, })
     buy_list, sell_list, yield_list, kospi_yield_list, culmulative_yield, df = calc_yield(**param_dict)
     culmulative_yield_list.append(culmulative_yield)
-print(np.mean(culmulative_yield_list))
-culmulative_yield_list = []
-for code in code_list:
-    param_dict = dict({
-        'code': code,
-        'fromDate': '20160601',
-        'toDate': '20210530',
-        'buy_strat': '변동성돌파',
-        'K_val': 0.3,
-        'sell_strat': '당일종가',
-        'spillage': 2, })
-    buy_list, sell_list, yield_list, kospi_yield_list, culmulative_yield, df = calc_yield(**param_dict)
-    culmulative_yield_list.append(culmulative_yield)
-print(np.mean(culmulative_yield_list))
+print('* 누적 수익률: ', np.mean(culmulative_yield_list))
+
+# culmulative_yield_list = []
+# for code in code_list:
+#     param_dict = dict({
+#         'code': code,
+#         'fromDate': '20160601',
+#         'toDate': '20210530',
+#         'buy_strat': '변동성돌파',
+#         'K_val': 0.3,
+#         'sell_strat': '당일종가',
+#         'spillage': 2, })
+#     buy_list, sell_list, yield_list, kospi_yield_list, culmulative_yield, df = calc_yield(**param_dict)
+#     culmulative_yield_list.append(culmulative_yield)
+# print(np.mean(culmulative_yield_list))
+
