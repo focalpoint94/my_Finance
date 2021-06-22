@@ -265,12 +265,12 @@ def simulate_invest(**kwargs):
         if len(arr[i]) == 0:
             daily_yield_avg_list.append(0)
         else:
-            daily_yield_avg_list.append(np.mean(arr[i]))
+            daily_yield_avg_list.append(np.sum(arr[i])/max_stock_num)
 
     culmulative_yield = 1
     for i in range(1, max_idx):
         if len(arr[i]) != 0:
-            culmulative_yield = culmulative_yield * (1 + np.mean(arr[i])/100)
+            culmulative_yield = culmulative_yield * (1 + (np.sum(arr[i])/max_stock_num)/100)
 
     print('* 일 평균 매수 종목 갯수 기초 통계랑 *')
     print('AVG: ', np.mean(daily_count_list))
@@ -312,7 +312,6 @@ param_dict = dict({
     'K_val': 0.4,
     'sell_strat': '익일시가',
     'spillage': 1,
-    'max_stock_num': 9,
+    'max_stock_num': 10,
     })
 simulate_invest(**param_dict)
-
