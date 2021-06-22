@@ -14,6 +14,9 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from pykrx import stock
 import matplotlib.pyplot as plt
+import json
+from time import sleep
+import random
 
 """
 Load code list from ETFs.txt
@@ -52,7 +55,7 @@ def calc_yield(**kwargs):
     code: 종목 코드
     fromDate: 시작일
     toDate: 종료일
-    buy_start: '변동성돌파'
+    buy_start: '변동성돌파', '변동성돌파-전일상승', '변동성돌파-상승출발'
     K_val = 변동성 돌파 전략의 K 값
     sell_start: '당일종가', '익일시가'
     spillage: 스필리지 (e.g. x: x호가 단위 만큼 매수 spillage 발생)
@@ -77,10 +80,16 @@ def calc_yield(**kwargs):
     Get Unit-Bid-Price
     Load KOSPI DataFrame (OHLCV)
     """
-    df = stock.get_etf_ohlcv_by_date(fromDate, toDate, code)
-    # unit_bid = get_unit_bid_price(code)
-    unit_bid = 5
-    kospi_df = stock.get_index_ohlcv_by_date(fromDate, toDate, "1001")
+    while True:
+        try:
+            sleep(1)
+            df = stock.get_etf_ohlcv_by_date(fromDate, toDate, code)
+            # unit_bid = get_unit_bid_price(code)
+            unit_bid = 5
+            # kospi_df = stock.get_index_ohlcv_by_date(fromDate, toDate, "1001")
+            break
+        except json.decoder.JSONDecodeError:
+            pass
 
     """
     Returns
@@ -117,6 +126,41 @@ def calc_yield(**kwargs):
                     buy_price = (target_price + unit_bid) // unit_bid * unit_bid + unit_bid * spillage
                 buy_list.append((i, buy_price))
 
+    elif buy_strat == '변동성돌파-전일상승':
+        for i in range(1, len(df) - 1):
+            yesterday_high = df.iloc[i-1]['고가']
+            yesterday_low = df.iloc[i-1]['저가']
+            yesterday_sweep = yesterday_high - yesterday_low
+            target_price = df.iloc[i]['시가'] + yesterday_sweep * K_val
+            yesterday_open = df.iloc[i-1]['시가']
+            yesterday_close = df.iloc[i-1]['종가']
+            # 전일 상승 조건
+            if yesterday_close > yesterday_open:
+                # 매수 가격 발생 여부 확인
+                if df.iloc[i]['저가'] < target_price < df.iloc[i]['고가']:
+                    if target_price % unit_bid == 0:
+                        buy_price = target_price + unit_bid * spillage
+                    else:
+                        buy_price = (target_price + unit_bid) // unit_bid * unit_bid + unit_bid * spillage
+                    buy_list.append((i, buy_price))
+
+    elif buy_strat == '변동성돌파-상승출발':
+        for i in range(1, len(df) - 1):
+            yesterday_high = df.iloc[i-1]['고가']
+            yesterday_low = df.iloc[i-1]['저가']
+            yesterday_sweep = yesterday_high - yesterday_low
+            target_price = df.iloc[i]['시가'] + yesterday_sweep * K_val
+            yesterday_close = df.iloc[i-1]['종가']
+            # 상승 출발 조건
+            if yesterday_close < df.iloc[i]['시가']:
+                # 매수 가격 발생 여부 확인
+                if df.iloc[i]['저가'] < target_price < df.iloc[i]['고가']:
+                    if target_price % unit_bid == 0:
+                        buy_price = target_price + unit_bid * spillage
+                    else:
+                        buy_price = (target_price + unit_bid) // unit_bid * unit_bid + unit_bid * spillage
+                    buy_list.append((i, buy_price))
+
     """
     매도 전략
     """
@@ -141,9 +185,9 @@ def calc_yield(**kwargs):
     """
     코스피 수익률
     """
-    for buy_pnt in buy_list:
-        kospi_delta = (kospi_df.iloc[buy_pnt[0]]['종가'] - kospi_df.iloc[buy_pnt[0]]['시가']) / kospi_df.iloc[buy_pnt[0]]['시가']
-        kospi_yield_list.append((buy_pnt[0], (1 + kospi_delta)))
+    # for buy_pnt in buy_list:
+    #     kospi_delta = (kospi_df.iloc[buy_pnt[0]]['종가'] - kospi_df.iloc[buy_pnt[0]]['시가']) / kospi_df.iloc[buy_pnt[0]]['시가']
+    #     kospi_yield_list.append((buy_pnt[0], (1 + kospi_delta)))
 
     return buy_list, sell_list, yield_list, kospi_yield_list, culmulative_yield, df
 
@@ -153,7 +197,7 @@ def calc_yield_dist(**kwargs):
     code: 종목 코드
     fromDate: 시작일
     toDate: 종료일
-    buy_start: '변동성돌파'
+    buy_start: '변동성돌파', '변동성돌파-전일상승', '변동성돌파-상승출발'
     K_val = 변동성 돌파 전략의 K 값
     sell_start: '당일종가', '익일시가'
     spillage: 스필리지 (e.g. x: x호가 단위 만큼 매수 spillage 발생)
@@ -180,16 +224,20 @@ def simulate_invest(**kwargs):
     code_list: 종목 코드 리스트
     fromDate: 시작일
     toDate: 종료일
-    buy_start: '변동성돌파'
+    buy_start: '변동성돌파', '변동성돌파-전일상승', '변동성돌파-상승출발'
     K_val = 변동성 돌파 전략의 K 값
     sell_start: '당일종가', '익일시가'
     spillage: 스필리지 (e.g. x: x호가 단위 만큼 매수 spillage 발생)
+    max_stock_num: 일일 최대 보유 종목 수
     :return:
     - 일 평균 전략 수익률 분포
     - 일 평균 매수 횟수 분포
+    - 예상 누적 수익률
     """
     all_yield_list = []
     code_list = kwargs['code_list']
+    max_stock_num = kwargs['max_stock_num']
+
     for code in code_list:
         param_dict = kwargs
         param_dict['code'] = code
@@ -204,25 +252,39 @@ def simulate_invest(**kwargs):
     for yield_tuple in all_yield_list:
         arr[yield_tuple[0]].append(yield_tuple[1]*100)
 
+    # 일일 최대 보유 종목 수 제약
+    for i in range(1, max_idx):
+        if len(arr[i]) > max_stock_num:
+            random.shuffle(arr[i])
+            arr[i] = arr[i][:max_stock_num]
+
     daily_count_list = []
     daily_yield_avg_list = []
     for i in range(1, max_idx):
         daily_count_list.append(len(arr[i]))
-        if len(arr[i]) != 0:
+        if len(arr[i]) == 0:
+            daily_yield_avg_list.append(0)
+        else:
             daily_yield_avg_list.append(np.mean(arr[i]))
 
-    print('* 일 평균 전략 수익률 기초 통계랑 *')
-    print('AVG: ', np.mean(daily_yield_avg_list))
-    print('STD: ', np.std(daily_yield_avg_list))
-    print('MAX: ', np.max(daily_yield_avg_list))
-    print('MIN: ', np.min(daily_yield_avg_list))
-    print('================================')
+    culmulative_yield = 1
+    for i in range(1, max_idx):
+        if len(arr[i]) != 0:
+            culmulative_yield = culmulative_yield * (1 + np.mean(arr[i])/100)
+
     print('* 일 평균 매수 종목 갯수 기초 통계랑 *')
     print('AVG: ', np.mean(daily_count_list))
     print('STD: ', np.std(daily_count_list))
     print('MAX: ', np.max(daily_count_list))
     print('MIN: ', np.min(daily_count_list))
     print('================================')
+    print('* 일 평균 전략 수익률 기초 통계랑 *')
+    print('AVG: ', np.mean(daily_yield_avg_list))
+    print('STD: ', np.std(daily_yield_avg_list))
+    print('MAX: ', np.max(daily_yield_avg_list))
+    print('MIN: ', np.min(daily_yield_avg_list))
+    print('================================')
+    print('* 예상 누적 수익률: ', culmulative_yield)
 
 
 """
@@ -242,44 +304,15 @@ calc_yield
 """
 simulate_invest
 """
-# param_dict = dict({
-#     'code_list': code_list,
-#     'fromDate': '20160601',
-#     'toDate': '20210530',
-#     'buy_strat': '변동성돌파',
-#     'K_val': 0.3,
-#     'sell_strat': '당일종가',
-#     'spillage': 1, })
-# simulate_invest(**param_dict)
-
-"""
-culmulative yield
-"""
-culmulative_yield_list = []
-for code in code_list:
-    param_dict = dict({
-        'code': code,
-        'fromDate': '20160601',
-        'toDate': '20210530',
-        'buy_strat': '변동성돌파',
-        'K_val': 0.3,
-        'sell_strat': '당일종가',
-        'spillage': 1, })
-    buy_list, sell_list, yield_list, kospi_yield_list, culmulative_yield, df = calc_yield(**param_dict)
-    culmulative_yield_list.append(culmulative_yield)
-print('* 누적 수익률: ', np.mean(culmulative_yield_list))
-
-# culmulative_yield_list = []
-# for code in code_list:
-#     param_dict = dict({
-#         'code': code,
-#         'fromDate': '20160601',
-#         'toDate': '20210530',
-#         'buy_strat': '변동성돌파',
-#         'K_val': 0.3,
-#         'sell_strat': '당일종가',
-#         'spillage': 2, })
-#     buy_list, sell_list, yield_list, kospi_yield_list, culmulative_yield, df = calc_yield(**param_dict)
-#     culmulative_yield_list.append(culmulative_yield)
-# print(np.mean(culmulative_yield_list))
+param_dict = dict({
+    'code_list': code_list,
+    'fromDate': '20160601',
+    'toDate': '20210530',
+    'buy_strat': '변동성돌파',
+    'K_val': 0.4,
+    'sell_strat': '익일시가',
+    'spillage': 1,
+    'max_stock_num': 9,
+    })
+simulate_invest(**param_dict)
 
